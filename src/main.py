@@ -4,6 +4,16 @@ import requests
 import json
 import time
 
+import os
+import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import text
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
+import model
+from config import SessionLocal, engine
+
 
 class App:
     def __init__(self):
@@ -11,11 +21,11 @@ class App:
         self.TICKS = 10
 
         # To be configured by your team
-        self.HOST = None  # Setup your host here
-        self.TOKEN = None  # Setup your token here
-        self.T_MAX = None  # Setup your max temperature here
-        self.T_MIN = None  # Setup your min temperature here
-        self.DATABASE_URL = None  # Setup your database here
+        self.HOST = os.getenv("HOST")
+        self.TOKEN = os.getenv("TOKEN")
+        self.T_MAX = os.getenv("T_MAX")
+        self.T_MIN = os.getenv("T_MIN")
+        self.DATABASE_URL = os.getenv("DATABASE_URL")
 
     def __del__(self):
         if self._hub_connection != None:
@@ -26,6 +36,9 @@ class App:
         self.setup_sensor_hub()
         self._hub_connection.start()
         print("Press CTRL+C to exit.")
+
+        model.Base.metadata.create_all(bind=engine)
+
         while True:
             time.sleep(2)
 
@@ -76,11 +89,47 @@ class App:
         details = json.loads(r.text)
         print(details, flush=True)
 
+    # ========================
+    # Session de base de données
+    # ========================
+
+    def get_db():
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            print("Closing database connection...")
+            db.close()
+
     def save_event_to_database(self, timestamp, temperature):
+        db = self.get_db()
         """Save sensor data into database."""
         try:
-            # To implement
-            pass
+            timestamp = datetime.utcnow()
+            
+            action = "None"
+            if float(temperature) >= float(self.T_MAX):
+                action = "TurnOnAc"
+            elif float(temperature) <= float(self.T_MIN):
+                action = "TurnOnHeater"
+
+            # Utilisation de text pour encapsuler la requête SQL brute
+            query = text("""
+                INSERT INTO temperatures (timestamp, temprature, action)
+                VALUES (:timestamp, :tempreature, :action)
+            """)
+
+            db.execute(
+                query,
+                {
+                    "timestamp": timestamp,
+                    # Not sure about this cast
+                    "temperature": float(temperature),
+                    "action": action,
+                }
+            )
+            db.commit()
+
         except requests.exceptions.RequestException as e:
             # To implement
             pass
