@@ -5,7 +5,7 @@ import json
 import time
 
 import os
-import datetime
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import text
@@ -13,6 +13,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 import model
 from config import SessionLocal, engine
+from contextlib import contextmanager
+
+from fastapi import Depends
 
 
 class App:
@@ -27,9 +30,14 @@ class App:
         self.T_MIN = os.getenv("T_MIN")
         self.DATABASE_URL = os.getenv("DATABASE_URL")
 
+        # Initialize a single session for database operations
+        self.db_session = SessionLocal()
+
     def __del__(self):
         if self._hub_connection != None:
             self._hub_connection.stop()
+        # Close the connection to the database
+        self.db_session.close()
 
     def start(self):
         """Start Oxygen CS."""
@@ -92,17 +100,16 @@ class App:
     # ========================
     # Session de base de données
     # ========================
-
-    def get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            print("Closing database connection...")
-            db.close()
+    # def get_db():
+    #     db = SessionLocal()
+    #     try:
+    #         yield db
+    #     finally:
+    #         print("Closing database connection...")
+    #         db.close()
 
     def save_event_to_database(self, timestamp, temperature):
-        db = self.get_db()
+        
         """Save sensor data into database."""
         try:
             timestamp = datetime.utcnow()
@@ -115,11 +122,11 @@ class App:
 
             # Utilisation de text pour encapsuler la requête SQL brute
             query = text("""
-                INSERT INTO temperatures (timestamp, temprature, action)
-                VALUES (:timestamp, :tempreature, :action)
+                INSERT INTO temperatures (timestamp, temperature, action)
+                VALUES (:timestamp, :temperature, :action)
             """)
 
-            db.execute(
+            self.db_session.execute(
                 query,
                 {
                     "timestamp": timestamp,
@@ -128,10 +135,11 @@ class App:
                     "action": action,
                 }
             )
-            db.commit()
+            self.db_session.commit()
 
         except requests.exceptions.RequestException as e:
             # To implement
+            print(e) 
             pass
 
 
