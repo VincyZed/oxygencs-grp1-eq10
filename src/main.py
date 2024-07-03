@@ -1,35 +1,41 @@
-from signalrcore.hub_connection_builder import HubConnectionBuilder
-import logging
-import requests
-import json
-import time
+"""Main App file for Oxygen CS. Responsible for handling sensor data events,
+ taking actions based on the temperature, and saving the sensor data into the database."""
 
 import os
-import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+import time
+from datetime import datetime
+import logging
+import json
+
+import requests
 from sqlalchemy.sql import text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import Session
-import model
-from config import SessionLocal, engine
+from signalrcore.hub_connection_builder import HubConnectionBuilder
+
+from config import SessionLocal, engine, Base
 
 
 class App:
+    """Main class for the Oxygen CS application"""
+
     def __init__(self):
         self._hub_connection = None
-        self.TICKS = 10
+        self.ticks = 10
 
         # To be configured by your team
-        self.HOST = os.getenv("HOST")
-        self.TOKEN = os.getenv("TOKEN")
-        self.T_MAX = os.getenv("T_MAX")
-        self.T_MIN = os.getenv("T_MIN")
-        self.DATABASE_URL = os.getenv("DATABASE_URL")
+        self.host = os.getenv("HOST")
+        self.token = os.getenv("TOKEN")
+        self.t_max = os.getenv("T_MAX")
+        self.t_min = os.getenv("T_MIN")
+        self.database_url = os.getenv("DATABASE_URL")
+
+        # Initialize a single session for database operations
+        self.db_session = SessionLocal()
 
     def __del__(self):
-        if self._hub_connection != None:
+        if self._hub_connection is not None:
             self._hub_connection.stop()
+        # Close the connection to the database
+        self.db_session.close()
 
     def start(self):
         """Start Oxygen CS."""
@@ -37,7 +43,7 @@ class App:
         self._hub_connection.start()
         print("Press CTRL+C to exit.")
 
-        model.Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
 
         while True:
             time.sleep(2)
@@ -46,7 +52,7 @@ class App:
         """Configure hub connection and subscribe to sensor data events."""
         self._hub_connection = (
             HubConnectionBuilder()
-            .with_url(f"{self.HOST}/SensorHub?token={self.TOKEN}")
+            .with_url(f"{self.host}/SensorHub?token={self.token}")
             .configure_logging(logging.INFO)
             .with_automatic_reconnect(
                 {
@@ -61,9 +67,7 @@ class App:
         self._hub_connection.on("ReceiveSensorData", self.on_sensor_data_received)
         self._hub_connection.on_open(lambda: print("||| Connection opened."))
         self._hub_connection.on_close(lambda: print("||| Connection closed."))
-        self._hub_connection.on_error(
-            lambda data: print(f"||| An exception was thrown closed: {data.error}")
-        )
+        self._hub_connection.on_error(lambda data: print(f"||| Exception thrown: {data.error}"))
 
     def on_sensor_data_received(self, data):
         """Callback method to handle sensor data on reception."""
@@ -73,66 +77,56 @@ class App:
             temperature = float(data[0]["data"])
             self.take_action(temperature)
             self.save_event_to_database(timestamp, temperature)
-        except Exception as err:
-            print(err)
+        # except the most common types of exceptions (but not using the generic Exception class)
+        except (KeyError, TypeError, ValueError) as e:
+            print(e)
 
     def take_action(self, temperature):
         """Take action to HVAC depending on current temperature."""
-        if float(temperature) >= float(self.T_MAX):
+        if float(temperature) >= float(self.t_max):
             self.send_action_to_hvac("TurnOnAc")
-        elif float(temperature) <= float(self.T_MIN):
+        elif float(temperature) <= float(self.t_min):
             self.send_action_to_hvac("TurnOnHeater")
 
     def send_action_to_hvac(self, action):
         """Send action query to the HVAC service."""
-        r = requests.get(f"{self.HOST}/api/hvac/{self.TOKEN}/{action}/{self.TICKS}")
+        r = requests.get(f"{self.host}/api/hvac/{self.token}/{action}/{self.ticks}", timeout=10)
         details = json.loads(r.text)
         print(details, flush=True)
 
-    # ========================
-    # Session de base de données
-    # ========================
-
-    def get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            print("Closing database connection...")
-            db.close()
-
     def save_event_to_database(self, timestamp, temperature):
-        db = self.get_db()
         """Save sensor data into database."""
         try:
             timestamp = datetime.utcnow()
-            
+
             action = "None"
-            if float(temperature) >= float(self.T_MAX):
+            if float(temperature) >= float(self.t_max):
                 action = "TurnOnAc"
-            elif float(temperature) <= float(self.T_MIN):
+            elif float(temperature) <= float(self.t_min):
                 action = "TurnOnHeater"
 
             # Utilisation de text pour encapsuler la requête SQL brute
-            query = text("""
-                INSERT INTO temperatures (timestamp, temprature, action)
-                VALUES (:timestamp, :tempreature, :action)
-            """)
+            query = text(
+                """
+                INSERT INTO temperatures (timestamp, temperature, action)
+                VALUES (:timestamp, :temperature, :action)
+            """
+            )
 
-            db.execute(
+            self.db_session.execute(
                 query,
                 {
                     "timestamp": timestamp,
                     # Not sure about this cast
                     "temperature": float(temperature),
                     "action": action,
-                }
+                },
             )
-            db.commit()
+            self.db_session.commit()
 
         except requests.exceptions.RequestException as e:
             # To implement
-            pass
+            print(e)
 
 
 if __name__ == "__main__":
