@@ -14,8 +14,6 @@ from signalrcore.hub_connection_builder import HubConnectionBuilder
 from config import SessionLocal, engine, Base
 
 
-# pylint: disable=too-many-instance-attributes
-# Eight is reasonable in this case.
 class App:
     """Main class for the Oxygen CS application"""
 
