@@ -11,11 +11,6 @@ load_dotenv()
 from src.main import App
 
 
-## To Implement
-# Mocker les données reçues par le serveur
-# Test: Actions prises par le système en fonction de la température
-
-
 def test_take_action_too_hot():
     """Test the take_action method when the temperature is too hot."""
     app = App()
