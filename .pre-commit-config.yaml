@@ -13,7 +13,7 @@ repos:
       types: [python]
     - id: pytest-check
       name: pytest-check
-      entry: pytest test/test.py
+      entry: pytest test/unit_tests.py
       language: system
       pass_filenames: false
       always_run: true
