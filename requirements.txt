@@ -1,0 +1,6 @@
+requests==2.32.3
+signalrcore==0.9.5
+SQLAlchemy==2.0.30
+uvicorn==0.30.0
+psycopg2==2.9.9
+pipenv==2023.6.12

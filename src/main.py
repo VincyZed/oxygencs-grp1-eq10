@@ -6,11 +6,9 @@ import time
 from datetime import datetime
 import logging
 import json
-
 import requests
 from sqlalchemy.sql import text
 from signalrcore.hub_connection_builder import HubConnectionBuilder
-
 from config import SessionLocal, engine, Base
 
 
