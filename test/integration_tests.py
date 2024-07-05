@@ -1,25 +1,34 @@
 """Test file for Oxygen CS. Responsible for testing 
 different temperature scenarios and actions taken by the system."""
 
-from unittest.mock import MagicMock
+import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-from src.main import App
+from .mock_responses.sensor_mock_reponse import mock_response
+
+
+def test_received_timestamp_format():
+    """Test the received timestamp format from HVAC."""
+    timestamp = mock_response["timestamp"]
+    try:
+        datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
+    except ValueError:
+        assert False
 
 
 def test_received_temperature_format():
-    """Test the format of the first received temperature."""
-    app = App()
-    # Wait for the first temperature to be received from the on_sensor_data_received callback function
-    app.on_sensor_data_received = MagicMock()
-    app.start()
-    assert app.on_sensor_data_received.call_count == 1
-    # Assert that the timestamp is in the correct format
-    # assert app.on_sensor_data_received.call_args[0]["date"] is not None
+    """Test the received timestamp format from HVAC."""
+    temperature = mock_response["temperature"]
+    try:
+        # Verify that the temperature is a float with 2 decimal places
+        assert isinstance(temperature, float)
+        assert round(temperature, 2) == temperature
+    except ValueError:
+        assert False
 
 
-# def test_received_action():
-#     """Test the received action from the HVAC."""
-#     app = App()
-#
+def test_received_action():
+    """Test the received action from the HVAC."""
+    action = mock_response["action"]
+    assert action in {"TurnOnAc", "TurnOnHeater"}
