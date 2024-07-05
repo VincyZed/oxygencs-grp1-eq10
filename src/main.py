@@ -67,7 +67,9 @@ class App:
         self._hub_connection.on("ReceiveSensorData", self.on_sensor_data_received)
         self._hub_connection.on_open(lambda: print("||| Connection opened."))
         self._hub_connection.on_close(lambda: print("||| Connection closed."))
-        self._hub_connection.on_error(lambda data: print(f"||| Exception thrown: {data.error}"))
+        self._hub_connection.on_error(
+            lambda data: print(f"||| Exception thrown: {data.error}")
+        )
 
     def on_sensor_data_received(self, data):
         """Callback method to handle sensor data on reception."""
@@ -90,7 +92,9 @@ class App:
 
     def send_action_to_hvac(self, action):
         """Send action query to the HVAC service."""
-        r = requests.get(f"{self.host}/api/hvac/{self.token}/{action}/{self.ticks}", timeout=10)
+        r = requests.get(
+            f"{self.host}/api/hvac/{self.token}/{action}/{self.ticks}", timeout=10
+        )
         details = json.loads(r.text)
         print(details, flush=True)
 
