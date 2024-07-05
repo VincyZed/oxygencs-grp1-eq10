@@ -13,8 +13,6 @@ from signalrcore.hub_connection_builder import HubConnectionBuilder
 
 from config import SessionLocal, engine, Base
 
-# Dumb comment to trigger the pipeline
-
 
 class App:
     """Main class for the Oxygen CS application"""
