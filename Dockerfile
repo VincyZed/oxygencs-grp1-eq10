@@ -1,15 +1,24 @@
-FROM python:3.12.3-alpine as builder
+FROM python:3.12.3-alpine
 
+# Set the working directory to /code
 WORKDIR /code
- 
-COPY ./requirements.txt /code/requirements.txt
-RUN \
- apk add --no-cache python3 postgresql-libs && \
- apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
- python3 -m pip install -r requirements.txt --no-cache-dir && \
- apk --purge del .build-deps
 
+# Copy Pipfile to /code
+COPY Pipfile /code/
+
+# Copy Pipfile.lock to /code
+COPY Pipfile.lock /code/
+
+# Install dependencies
+RUN apk add --no-cache python3 postgresql-libs && \
+    apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
+    python3 -m pip install pipenv && \
+    pipenv install --deploy && \
+    apk --purge del .build-deps
+
+# Copy the rest of the application code
 COPY ./src /code/src
 
-WORKDIR /code/src
-CMD [ "pipenv", "run", "start" ]
+# Set the entrypoint to use pipenv
+ENTRYPOINT ["pipenv", "run"]
+CMD ["start"]
