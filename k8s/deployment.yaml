@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oxygen
+  labels:
+    app: oxygen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oxygen
+  template:
+    metadata:
+      labels:
+        app: oxygen
+    spec:
+      containers:
+      - name: oxygen
+        image: louishorlaville/log680_eq10_oxygen:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+        env:
+          - name: HOST
+            valueFrom:
+              configMapKeyRef: 
+                name: hvac.config
+                key: host
+          - name: T_MAX
+            valueFrom:
+              configMapKeyRef: 
+                name: hvac.config
+                key: t.max
+          - name: T_MIN
+            valueFrom:
+              configMapKeyRef: 
+                name: hvac.config
+                key: t.min
+          - name: DATABASE_URL
+            valueFrom:
+              configMapKeyRef: 
+                name: hvac.config
+                key: db.url
+          - name: TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: hvac.secrets
+                key: token
+          
+            

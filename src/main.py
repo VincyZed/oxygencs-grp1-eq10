@@ -28,6 +28,8 @@ class App:
         self.t_min = os.getenv("T_MIN")
         self.database_url = os.getenv("DATABASE_URL")
 
+        print(f"Database URL: {self.database_url}")
+
         # Initialize a single session for database operations
         self.db_session = SessionLocal()
 
