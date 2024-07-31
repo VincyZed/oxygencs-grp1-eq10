@@ -9,24 +9,12 @@ COPY Pipfile /code/
 # Copy Pipfile.lock to /code
 COPY Pipfile.lock /code/
 
-# # Copy the cron file to /code/src
-# COPY cron /etc/cron.d/cron
-
-# # Give the permission
-# RUN chmod 0644 /etc/cron.d/cron
-
-# # Add the cron job
-# RUN crontab /etc/cron.d/cron
-
-# # Link cron log file to stdout
-# RUN ln -s /dev/stdout /var/log/cron
-
 # Install dependencies
 RUN apk add --no-cache python3 postgresql-libs && \
     apk add --no-cache --virtual .build-deps gcc python3-dev musl-dev postgresql-dev && \
     python3 -m pip install pipenv && \
-    pipenv install --deploy && deps\
-    apk --purge del .build-
+    pipenv install --deploy && \
+    apk --purge del .build-deps
 
 # Copy the rest of the application code
 COPY ./src /code/src
