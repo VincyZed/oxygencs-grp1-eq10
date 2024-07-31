@@ -5,7 +5,6 @@ metadata:
   labels:
     app: oxygen
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: oxygen
@@ -17,6 +16,7 @@ spec:
       containers:
       - name: oxygen
         image: louishorlaville/log680_eq10_oxygen:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         resources:

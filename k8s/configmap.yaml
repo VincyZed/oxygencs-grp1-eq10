@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hvac.config
+  namespace: grp01eq10-namespace
+data:
+  db.url: postgresql://user01eq10:DQKDYh4ISzVTvgI8@157.230.69.113:5432/db01eq10
+  host: http://159.203.50.162
+  t.max: '20'
+  t.min: '15'
